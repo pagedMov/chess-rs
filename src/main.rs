@@ -1,38 +1,102 @@
+mod boards;
 
+use boards::Piece::*;
+use boards::Square;
 
-pub enum Square {
-    A8 = 56, B8 = 57, C8 = 58, D8 = 59, E8 = 60, F8 = 61, G8 = 62, H8 = 63,
-    A7 = 48, B7 = 49, C7 = 50, D7 = 51, E7 = 52, F7 = 53, G7 = 54, H7 = 55,
-    A6 = 40, B6 = 41, C6 = 42, D6 = 43, E6 = 44, F6 = 45, G6 = 46, H6 = 47,
-    A5 = 32, B5 = 33, C5 = 34, D5 = 35, E5 = 36, F5 = 37, G5 = 38, H5 = 39,
-    A4 = 24, B4 = 25, C4 = 26, D4 = 27, E4 = 28, F4 = 29, G4 = 30, H4 = 31,
-    A3 = 16, B3 = 17, C3 = 18, D3 = 19, E3 = 20, F3 = 21, G3 = 22, H3 = 23,
-    A2 = 8, B2 = 9, C2 = 10, D2 = 11, E2 = 12, F2 = 13, G2 = 14, H2 = 15,
-    A1 = 0, B1 = 1, C1 = 2, D1 = 3, E1 = 4, F1 = 5, G1 = 6, H1 = 7,
+pub enum Color {
+    White,
+    Black,
 }
 
-pub fn set_bit(board: &mut u64, square: i32) {
-    *board |= 1 << square as u64;
-}
-pub fn clear_bit(board: &mut u64, square: i32) {
-    *board |= 1 << square as u64;
-}
-pub fn check_bit(board: u64, square: i32) -> u8 {
-    let result = board & (1 << square as u64) != 0;
-    return result as u8
+pub enum Outcome {
+    Checkmate,
+    Stalemate,
+    Draw,
 }
 
-pub fn print_bitbrd(board: u64) {
-    for sq in (0..64).rev() {
-        let bit = (board >> sq) & 1;
-        if sq % 8 == 0 {
-            println!("{bit}");
-        } else {
-            print!("{bit}")
+struct Game {
+    players: [Player; 2],
+    turn: i32,
+    player_to_move: i8,
+    check: bool,
+}
+
+impl Game {
+    pub fn new() -> Self {
+        let white = Player::new(Color::White);
+        let black = Player::new(Color::Black);
+        Game {
+            players: [white,black],
+            turn: 0,
+            player_to_move: 0, 
+            check: false,
         }
     }
+
+    pub fn next_turn(&mut self) {
+        self.turn += 1;
+        self.player_to_move += 1; 
+        self.player_to_move %= 2; 
+    }
+
+    pub fn start_game(&mut self) { }
+}
+
+struct Player {
+    piece_boards: [u64; 6],
+}
+
+impl Player {
+    pub fn new(color: Color) -> Self {
+        let boards: [u64; 6] = Player::init_boards(color);
+        Player {
+            piece_boards: boards,
+        }
+    }
+
+    pub fn setup_piece(bit_positions:u64, is_white: bool) -> u64 {
+        if is_white {
+            bit_positions
+        } else {
+            bit_positions.reverse_bits()
+        }
+    }
+
+    pub fn init_boards(color: Color) -> [u64; 6] {
+        let mut boards: [u64; 6] = [0; 6];
+        let is_white = match color {
+            Color::White => true,
+            Color::Black => false,
+        };
+        boards[ROOK as usize] |= Player::setup_piece(1_u64 | (1_u64 << 7), is_white);
+        boards[KNIGHT as usize] |= Player::setup_piece(2_u64 | (2_u64 << 6), is_white);
+        boards[BISHOP as usize] |= Player::setup_piece(4_u64 | (4_u64 << 5), is_white);
+        boards[QUEEN as usize] |= Player::setup_piece(8_u64, is_white);
+        boards[KING as usize] |= Player::setup_piece(16_u64, is_white);
+        boards[PAWN as usize] |= Player::setup_piece(0xFF_u64 << 8, is_white);
+
+        boards
+    }
+
 }
 
 fn main() {
+
+    let rookboard: u64 = 1_u64 << 18;
+    let mut positions = Vec::new();
+    for i in 0..64 {
+        if (rookboard >> i) & 1 == 1 {
+            positions.push(i)
+        }
+    }
+
+    let mut all_rook_moves = 0_u64;
+    for square in positions {
+        let b_moves = boards::get_moves(square, BISHOP);
+        let r_moves = boards::get_moves(square, ROOK);
+        all_rook_moves |= (b_moves | r_moves);
+    }
+
+    boards::print_bitbrd(all_rook_moves);
 
 }
