@@ -2,11 +2,8 @@ mod boards;
 
 use boards::Piece::*;
 use boards::Square;
+use boards::Color;
 
-pub enum Color {
-    White,
-    Black,
-}
 
 pub enum Outcome {
     Checkmate,
@@ -82,7 +79,7 @@ impl Player {
 
 fn main() {
 
-    let rookboard: u64 = 1_u64 << 18;
+    let rookboard: u64 = 1_u64 << Square::H8 as usize;
     let mut positions = Vec::new();
     for i in 0..64 {
         if (rookboard >> i) & 1 == 1 {
@@ -92,9 +89,8 @@ fn main() {
 
     let mut all_rook_moves = 0_u64;
     for square in positions {
-        let b_moves = boards::get_moves(square, BISHOP);
-        let r_moves = boards::get_moves(square, ROOK);
-        all_rook_moves |= (b_moves | r_moves);
+        let moves = boards::get_moves(square, KNIGHT);
+        all_rook_moves |= moves;
     }
 
     boards::print_bitbrd(all_rook_moves);
